@@ -35,6 +35,8 @@ class EvaluadorPresionArterial {
       diagnostico = 'Presión sistólica alta';
     }
 
+    diagnostico += ' ($sistolica mmHg)';
+
     // Evaluar presión diastólica
     if (diastolica < 60) {
       diagnostico +=
@@ -43,6 +45,8 @@ class EvaluadorPresionArterial {
       diagnostico +=
           '${diagnostico.isEmpty ? '' : ' y '}presión diastólica alta';
     }
+
+    diagnostico += ' ($diastolica mmHg)';
 
     // Si no hay anomalías, verificar rangos por edad y sexo
     if (diagnostico.isEmpty) {
@@ -97,10 +101,6 @@ class EvaluadorPresionArterial {
       }
     }
 
-    return '''
-Diagnóstico: ${diagnostico.isEmpty ? 'No se puede determinar' : diagnostico}
-Valores medidos:
-• Sistólica: $sistolica mmHg
-• Diastólica: $diastolica mmHg''';
+    return diagnostico.isEmpty ? 'No se puede determinar' : diagnostico;
   }
 }

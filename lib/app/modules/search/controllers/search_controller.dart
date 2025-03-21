@@ -1,8 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get/get.dart';
-import 'dart:math';
 
 import '../../../data/services/calculadora_imc_service.dart';
+import '../../../data/services/random_forms.dart';
 
 class SearchController extends GetxController {
   var isLoading = true.obs;
@@ -10,6 +10,9 @@ class SearchController extends GetxController {
   var filters = <String, dynamic>{}.obs;
 
   var isTestUser = false.obs;
+
+  final itemsPerPage = 10.obs;
+  final currentPage = 0.obs;
 
   @override
   void onInit() {
@@ -27,11 +30,11 @@ class SearchController extends GetxController {
         final data = doc.data();
         data['id'] = doc.id; // Add document ID to the data
 
-        // //imprimir todos los datos del usuario con tipo de dato
-        // for (var key in data.keys) {
-        //   print('$key: ${data[key]} -> ${data[key].runtimeType}');
-        // }
-        // print('---------------------------------');
+        //imprimir todos los datos del usuario con tipo de dato
+        for (var key in data.keys) {
+          print('$key: ${data[key]} -> ${data[key].runtimeType}');
+        }
+        print('---------------------------------');
 
         return data;
       }).toList();
@@ -41,6 +44,43 @@ class SearchController extends GetxController {
     } catch (e) {
       return [];
     }
+  }
+
+  List<String> getEscuelasUnicas() {
+    Set<String> escuelas = {};
+
+    for (var user in users) {
+      // Agregar escuela del campo nombre_escuela si existe y no está vacío
+      if (user['nombre_escuela'] != null &&
+          user['nombre_escuela'].toString().isNotEmpty) {
+        escuelas.add(user['nombre_escuela'].toString());
+      }
+      // Agregar escuela del campo sec_TamMad si existe y no está vacío
+      if (user['sec_TamMad'] != null &&
+          user['sec_TamMad'].toString().isNotEmpty) {
+        escuelas.add(user['sec_TamMad'].toString());
+      }
+    }
+
+    // Convertir a lista y ordenar alfabéticamente
+    var listaEscuelas = escuelas.toList()..sort();
+    return listaEscuelas;
+  }
+
+  List<String> getCiudadesUnicas() {
+    Set<String> ciudades = {};
+
+    for (var user in users) {
+      // Agregar ciudad del campo ciudad si existe y no está vacío
+      if (user['municipio'] != null &&
+          user['municipio'].toString().isNotEmpty) {
+        ciudades.add(user['municipio'].toString());
+      }
+    }
+
+    // Convertir a lista y ordenar alfabéticamente
+    var listaCiudades = ciudades.toList()..sort();
+    return listaCiudades;
   }
 
   void filterUsers() {
@@ -69,6 +109,18 @@ class SearchController extends GetxController {
                 int filterAge = int.tryParse(value) ?? 0;
                 if (userAge != filterAge) matches = false;
               }
+            } else if (key == 'escuela') {
+              // Verificar tanto nombre_escuela como sec_TamMad
+              bool escuelaMatch = false;
+              if (user['nombre_escuela'] != null) {
+                escuelaMatch =
+                    user['nombre_escuela'].toString() == value.toString();
+              }
+              if (!escuelaMatch && user['sec_TamMad'] != null) {
+                escuelaMatch =
+                    user['sec_TamMad'].toString() == value.toString();
+              }
+              if (!escuelaMatch) matches = false;
             } else if (user[key].toString().toLowerCase() !=
                 value.toString().toLowerCase()) {
               matches = false;
@@ -88,18 +140,57 @@ class SearchController extends GetxController {
     }
   }
 
+  int get totalPages => (filteredUsers.length / itemsPerPage.value).ceil();
+
+  List<Map<String, dynamic>> get paginatedUsers {
+    if (filteredUsers.isEmpty) return [];
+
+    final startIndex = currentPage.value * itemsPerPage.value;
+    final endIndex = startIndex + itemsPerPage.value > filteredUsers.length
+        ? filteredUsers.length
+        : startIndex + itemsPerPage.value;
+
+    if (startIndex >= filteredUsers.length) {
+      currentPage.value = totalPages - 1;
+      return paginatedUsers;
+    }
+
+    return filteredUsers.sublist(startIndex, endIndex);
+  }
+
+  void nextPage() {
+    if (currentPage.value < totalPages - 1) {
+      currentPage.value++;
+    }
+  }
+
+  void previousPage() {
+    if (currentPage.value > 0) {
+      currentPage.value--;
+    }
+  }
+
+  void goToPage(int page) {
+    if (page >= 0 && page < totalPages) {
+      currentPage.value = page;
+    }
+  }
+
   void updateSearchQuery(String query) {
     searchQuery.value = query;
+    currentPage.value = 0; // Reset to first page when applying new filters
     filterUsers();
   }
 
   void updateFilter(String key, dynamic value) {
     filters[key] = value;
+    currentPage.value = 0; // Reset to first page when applying new filters
     filterUsers();
   }
 
   void clearFilters() {
     filters.clear();
+    currentPage.value = 0; // Reset to first page when clearing filters
     filterUsers();
   }
 
@@ -169,139 +260,7 @@ class SearchController extends GetxController {
   }
 
   Future<void> generateTestUser() async {
-    try {
-      final random = Random();
-      final nombres = [
-        'Ana',
-        'Juan',
-        'María',
-        'Pedro',
-        'Luis',
-        'Carmen',
-        'José',
-        'Patricia'
-      ];
-      final apellidos = [
-        'García',
-        'Hernández',
-        'López',
-        'Martínez',
-        'Rodríguez',
-        'González'
-      ];
-      final municipios = [
-        'Tampico',
-        'Madero',
-        'Altamira',
-        'Victoria',
-        'Reynosa',
-        'Matamoros'
-      ];
-      final escuelas = ['UAT', 'TecNM', 'UPN', 'ITCM', 'UPALT'];
-
-      final userData = {
-        'pr49': (random.nextInt(5) + 1).toString(),
-        'num_integrantes': random.nextInt(6) + 1,
-        'pr14': (random.nextInt(5) + 1).toString(),
-        'aplicacion_libro': 'String',
-        'pr7': (random.nextInt(5) + 1).toString(),
-        'gender': random.nextBool() ? 'Mujer' : 'Hombre',
-        'ap_cuestionarios': random.nextBool(),
-        'pr39': (random.nextInt(5) + 1).toString(),
-        'ap_resumen': random.nextBool(),
-        'pr23': (random.nextInt(5) + 1).toString(),
-        'pr20': (random.nextInt(5) + 1).toString(),
-        'pr9': (random.nextInt(5) + 1).toString(),
-        'ap_talleres': random.nextBool(),
-        'pr4': (random.nextInt(5) + 1).toString(),
-        'pr45': (random.nextInt(5) + 1).toString(),
-        'sec_TamMad': 'String',
-        'pr25': (random.nextInt(5) + 1).toString(),
-        'pr28': (random.nextInt(5) + 1).toString(),
-        'pr38': (random.nextInt(5) + 1).toString(),
-        'nombre_libro': '',
-        'tipo_escuela': random.nextBool() ? 'Pública' : 'Privada',
-        'pr37': (random.nextInt(5) + 1).toString(),
-        'mom_work': random.nextBool() ? 'Si' : 'No',
-        'pr2': (random.nextInt(5) + 1).toString(),
-        'integrantes_trabajando': (random.nextInt(4) + 1).toString(),
-        'internet': random.nextBool() ? 'Si Tiene' : 'No Tiene',
-        'pr18': (random.nextInt(5) + 1).toString(),
-        'nivelEduFam': 'Primaria Completa',
-        'pr47': (random.nextInt(5) + 1).toString(),
-        'pr30': (random.nextInt(5) + 1).toString(),
-        'ap_juegos': random.nextBool(),
-        'pr27': (random.nextInt(5) + 1).toString(),
-        'vida_saludable': 'String',
-        'name':
-            '${nombres[random.nextInt(nombres.length)]} ${apellidos[random.nextInt(apellidos.length)]} ${apellidos[random.nextInt(apellidos.length)]}',
-        'pr42': (random.nextInt(5) + 1).toString(),
-        'pr24': (random.nextInt(5) + 1).toString(),
-        // 'age': random.nextInt(50) + 15,age
-        //que la edad sea entre 10 y 20 años
-        'age': random.nextInt(11) + 10,
-        'pr8': (random.nextInt(5) + 1).toString(),
-        'cadera': random.nextInt(41) + 80, // 80-120
-        'ap_diapos': random.nextBool(),
-        'pr13': (random.nextInt(5) + 1).toString(),
-        'pr11': (random.nextInt(5) + 1).toString(),
-        'num_dormitorios': (random.nextInt(4) + 1).toString(),
-        'pr31': (random.nextInt(5) + 1).toString(),
-        'ap_organigrama': random.nextBool(),
-        'pr19': (random.nextInt(5) + 1).toString(),
-        'num_autos': (random.nextInt(3) + 1).toString(),
-        'peso': random.nextInt(51) + 50, // 50-100
-        'estatura': (random.nextInt(41) + 150) / 100, // 1.50-1.90
-        'pr34': (random.nextInt(5) + 1).toString(),
-        'nombre_escuela': escuelas[random.nextInt(escuelas.length)],
-        'pr32': (random.nextInt(5) + 1).toString(),
-        'pr5': (random.nextInt(5) + 1).toString(),
-        'pr12': (random.nextInt(5) + 1).toString(),
-        'pr29': (random.nextInt(5) + 1).toString(),
-        'pr22': (random.nextInt(5) + 1).toString(),
-        'ap_proyectos': random.nextBool(),
-        'municipio': municipios[random.nextInt(municipios.length)],
-        'pr46': (random.nextInt(5) + 1).toString(),
-        'pr50': (random.nextInt(5) + 1).toString(),
-        'grado': '${random.nextInt(9) + 1}°',
-        'pr1': (random.nextInt(5) + 1).toString(),
-        'sistolica': random.nextInt(41) + 80, // 80-120
-        'ap_videos': random.nextBool(),
-        'enfermedades': random.nextBool() ? 'No' : 'Si',
-        'pr6': (random.nextInt(5) + 1).toString(),
-        'ap_mesaRedonda': random.nextBool(),
-        'pr51': (random.nextInt(5) + 1).toString(),
-        'pr17': (random.nextInt(5) + 1).toString(),
-        'horario': 'String',
-        'pr41': (random.nextInt(5) + 1).toString(),
-        'ap_conceptuales': random.nextBool(),
-        'pr21': (random.nextInt(5) + 1).toString(),
-        'pr44': (random.nextInt(5) + 1).toString(),
-        'pr3': (random.nextInt(5) + 1).toString(),
-        'baths': (random.nextInt(3) + 1).toString(),
-        'pr43': (random.nextInt(5) + 1).toString(),
-        'diastolica': random.nextInt(21) + 60, // 60-80
-        'pr35': (random.nextInt(5) + 1).toString(),
-        'nivel_educativo': 'Universidad',
-        'pr48': (random.nextInt(5) + 1).toString(),
-        'pr10': (random.nextInt(5) + 1).toString(),
-        'pr36': (random.nextInt(5) + 1).toString(),
-        'pr33': (random.nextInt(5) + 1).toString(),
-        'pr15': (random.nextInt(5) + 1).toString(),
-        'ap_mentales': random.nextBool(),
-        'cintura': random.nextInt(41) + 60, // 60-100
-        'pr40': (random.nextInt(5) + 1).toString(),
-        'pr16': (random.nextInt(5) + 1).toString(),
-        'dad_work': random.nextBool() ? 'Si' : 'No',
-        'pr26': (random.nextInt(5) + 1).toString(),
-      };
-
-      await FirebaseFirestore.instance.collection('users').add(userData);
-      Get.snackbar('Éxito', 'Usuario de prueba generado',
-          snackPosition: SnackPosition.BOTTOM);
-    } catch (e) {
-      Get.snackbar('Error', 'No se pudo generar el usuario de prueba',
-          snackPosition: SnackPosition.BOTTOM);
-    }
+    final generator = RandomFormGenerator();
+    generator.uploadRandomPersona();
   }
 }

@@ -8,6 +8,7 @@ class CustomButton extends StatelessWidget {
   final Color? textColor;
   final double? width;
   final double? height;
+  final bool isMobile;
 
   const CustomButton({
     super.key,
@@ -18,12 +19,14 @@ class CustomButton extends StatelessWidget {
     this.textColor,
     this.width,
     this.height,
+    this.isMobile = false,
   });
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: width ?? 200,
+      // width: width ?? 200,
+      width: isMobile ? double.infinity : width ?? 200,
       height: height ?? 45,
       child: ElevatedButton(
         onPressed: onPressed,

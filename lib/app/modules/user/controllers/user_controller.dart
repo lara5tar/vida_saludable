@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get/get.dart';
 
 import '../../../data/services/calculadora_imc_service.dart';
+import '../../../data/services/nivel_socioeconomico.dart';
 import '../../../data/services/presion_arterial_service.dart';
 
 class UserController extends GetxController {
@@ -51,7 +52,7 @@ class UserController extends GetxController {
     final imc = peso / (estatura * estatura);
     return CalculadoraIMC.calcular(
       imc,
-      userData['age'],
+      userData['age'] ?? 0,
       userData['gender'].toString().toLowerCase(),
     );
   }
@@ -67,7 +68,7 @@ class UserController extends GetxController {
     final icc = cintura / estatura;
     final ratio = icc.toStringAsFixed(2);
 
-    return '$ratio - ${icc >= 0.50 ? 'Incrementa riesgos cardio-metabólicos' : 'Saludable'}';
+    return '${icc >= 0.50 ? 'Incrementa riesgos cardio-metabólicos' : 'Saludable'} ($ratio)';
   }
 
   String getIndiceCircunferenciaCadera() {
@@ -83,9 +84,9 @@ class UserController extends GetxController {
     final ratio = icc.toStringAsFixed(2);
 
     if (gender == 'masculino' || gender == 'hombre') {
-      return '$ratio - ${icc <= 0.90 ? 'Saludable' : 'Con riesgos cardio-metabólicos'}';
+      return '${icc <= 0.90 ? 'Saludable' : 'Con riesgos cardio-metabólicos'} ($ratio)';
     } else if (gender == 'femenino' || gender == 'mujer') {
-      return '$ratio - ${icc <= 0.85 ? 'Saludable' : 'Con riesgos cardio-metabólicos'}';
+      return '${icc <= 0.85 ? 'Saludable' : 'Con riesgos cardio-metabólicos'} ($ratio)';
     }
 
     return 'Género no válido';
@@ -103,5 +104,41 @@ class UserController extends GetxController {
     } catch (e) {
       return 'Datos inválidos para presión arterial';
     }
+  }
+
+  getNivelSE() {
+    return SocioEconomicCalculator.calculateNSE(user);
+  }
+
+  Map<String, dynamic> getEstiloVidaTotal() {
+    int puntajeTotal = 0;
+
+    // Sumar todas las preguntas de pr1 a pr51
+    for (int i = 1; i <= 51; i++) {
+      String key = 'pr$i';
+      if (user.containsKey(key)) {
+        puntajeTotal += int.tryParse(user[key].toString()) ?? 0;
+      }
+    }
+
+    String evaluacion;
+    String color;
+
+    if (puntajeTotal >= 204) {
+      evaluacion = 'Estilo de vida saludable';
+      color = 'green';
+    } else if (puntajeTotal >= 170) {
+      evaluacion = 'Estilo de vida regular';
+      color = 'yellow';
+    } else {
+      evaluacion = 'Mal estilo de vida';
+      color = 'red';
+    }
+
+    return {
+      'puntaje': puntajeTotal,
+      'evaluacion': evaluacion,
+      'color': color,
+    };
   }
 }

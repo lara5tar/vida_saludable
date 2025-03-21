@@ -3,14 +3,37 @@ import 'package:flutter/material.dart';
 
 Widget ageChartWidget(List<Map<String, dynamic>> users) {
   // Contadores para cada categoría de edad
-  final menores10 = users.where((user) => (user['age'] as num) < 10).length;
-  final mayores20 = users.where((user) => (user['age'] as num) > 20).length;
+  final menores10 = users.where(
+    (user) {
+      if (user['age'] == null) {
+        return false;
+      }
+      final edad = user['age'] as num;
+      return edad < 10;
+    },
+  ).length;
+
+  // final mayores20 = users.where((user) => (user['age'] as num) > 20).length;
+  final mayores20 = users.where(
+    (user) {
+      if (user['age'] == null) {
+        return false;
+      }
+      final edad = user['age'] as num;
+      return edad > 20;
+    },
+  ).length;
 
   // Mapa para contar usuarios por edad específica (10-20)
   Map<int, int> edadesConteo = {};
   for (int edad = 10; edad <= 20; edad++) {
-    edadesConteo[edad] =
-        users.where((user) => (user['age'] as num) == edad).length;
+    edadesConteo[edad] = users.where((user) {
+      if (user['age'] == null) {
+        return false;
+      }
+      final edadUsuario = user['age'] as num;
+      return edadUsuario == edad;
+    }).length;
   }
 
   return Column(
@@ -28,18 +51,37 @@ Widget ageChartWidget(List<Map<String, dynamic>> users) {
         child: BarChart(
           BarChartData(
             alignment: BarChartAlignment.spaceAround,
-            maxY: users.length.toDouble(),
+            maxY: [menores10, ...edadesConteo.values, mayores20].reduce((a, b) {
+              return a > b ? a : b;
+            }).toDouble(),
             titlesData: FlTitlesData(
               show: true,
               bottomTitles: AxisTitles(
                 sideTitles: SideTitles(
                   showTitles: true,
                   getTitlesWidget: (value, meta) {
-                    if (value == 0) return const Text('<10');
-                    if (value == 12) return const Text('>20');
-                    return Text('${value + 9}');
+                    String text;
+                    if (value == 0) {
+                      text = '<10';
+                    } else if (value == 12) {
+                      text = '>20';
+                    } else {
+                      text = '${value + 9}';
+                    }
+
+                    return Padding(
+                      padding: const EdgeInsets.only(top: 8.0),
+                      child: RotatedBox(
+                        quarterTurns: 3, // Rota el texto 90 grados
+                        child: Text(
+                          text,
+                          style: const TextStyle(fontSize: 12),
+                        ),
+                      ),
+                    );
                   },
-                  reservedSize: 30,
+                  reservedSize:
+                      40, // Aumentado para dar espacio al texto rotado
                 ),
               ),
               leftTitles: const AxisTitles(
@@ -129,6 +171,7 @@ Widget _buildLegend({
   required String text,
 }) {
   return Row(
+    mainAxisSize: MainAxisSize.min,
     children: [
       Container(
         width: 16,

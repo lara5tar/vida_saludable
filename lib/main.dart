@@ -14,7 +14,7 @@ void main() async {
 
   runApp(
     GetMaterialApp(
-      title: "Application",
+      title: "Vida Saludable",
       initialRoute: AppPages.INITIAL,
       getPages: AppPages.routes,
       debugShowCheckedModeBanner: false,
@@ -22,3 +22,8 @@ void main() async {
     ),
   );
 }
+
+
+// las edades
+// las advertencias
+// la evaluacion socioeconomica

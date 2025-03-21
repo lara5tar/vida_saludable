@@ -41,7 +41,7 @@ class Obesidad extends CategoriaIMC {
 
 class CalculadoraIMC {
   static String calcular(double imc, int edad, String sexo) {
-    edad = edad.clamp(10, 19);
+    edad = edad.clamp(5, 20);
 
     if (categoriasPesos.containsKey(sexo) &&
         categoriasPesos[sexo]!.containsKey(edad)) {
@@ -49,7 +49,7 @@ class CalculadoraIMC {
       for (var categoria in categorias) {
         final resultado = categoria.calcular(imc);
         if (resultado.isNotEmpty) {
-          return resultado;
+          return "$resultado (${imc.toStringAsFixed(1)})";
         }
       }
     }

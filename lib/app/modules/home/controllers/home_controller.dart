@@ -1,6 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get/get.dart';
-import 'package:vida_saludable/app/data/services/calculadora_imc_service.dart';
 
 class HomeController extends GetxController {
   var isLoading = true.obs;

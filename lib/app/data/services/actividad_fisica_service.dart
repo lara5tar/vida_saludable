@@ -33,4 +33,13 @@ class ActividadFisicaService {
     if (puntajeTotal >= 31) return 'yellow';
     return 'red';
   }
+
+  static String getRecomendaciones() {
+    return '''• 60 minutos diarios de actividad física moderada a vigorosa
+• Al menos 3 días de actividad aeróbica vigorosa
+• Actividades recreativas: juegos, deportes, ejercicios
+• Caminar o usar bicicleta para desplazamientos
+• Participar en tareas domésticas
+• Reducir el tiempo frente a pantallas''';
+  }
 }

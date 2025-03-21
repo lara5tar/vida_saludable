@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import '../../../data/services/nivel_socioeconomico.dart';
 import '../../../widgets/custom_scaffold.dart';
 import '../controllers/user_controller.dart';
 import '../../../data/services/habitos_alimenticios_service.dart';
@@ -19,43 +20,137 @@ class UserView extends GetView<UserController> {
         }
 
         return ListView(
-          padding: const EdgeInsets.all(40),
           children: [
             // Datos básicos
             _buildBasicInfoCard(controller.user),
+            const SizedBox(height: 20),
+            _buildEstiloVidaTotal(), // Agregamos este widget
             const SizedBox(height: 20),
             // Nueva tarjeta de índices
             _buildIndicesCard(controller.user),
             const SizedBox(height: 20),
             // Hábitos alimenticios
-            _buildEvaluationCard(
-              title: 'Evaluación de Hábitos Alimenticios (Preguntas 1-26)',
-              evaluation: HabitosAlimenticiosService.evaluar(controller.user),
-              color: HabitosAlimenticiosService.getColor(controller.user),
-              items: List.generate(26, (index) {
-                final pregunta = 'pr${index + 1}';
-                return '${index + 1}: ${controller.user[pregunta] ?? "N/A"}';
-              }),
+            Column(
+              children: [
+                _buildEvaluationCard(
+                  title: 'Evaluación de Hábitos Alimenticios',
+                  evaluation:
+                      HabitosAlimenticiosService.evaluar(controller.user),
+                  color: HabitosAlimenticiosService.getColor(controller.user),
+                  items: List.generate(26, (index) {
+                    final pregunta = 'pr${index + 1}';
+                    return '${index + 1}: ${controller.user[pregunta] ?? "N/A"}';
+                  }),
+                ),
+                const SizedBox(height: 20),
+                // Actividad física
+                _buildEvaluationCard(
+                  title: 'Evaluación de Actividad Física',
+                  evaluation: ActividadFisicaService.evaluar(controller.user),
+                  color: ActividadFisicaService.getColor(controller.user),
+                  items: List.generate(10, (index) {
+                    final pregunta = 'pr${index + 27}';
+                    return '${index + 27}: ${controller.user[pregunta] ?? "N/A"}';
+                  }),
+                ),
+              ],
             ),
-            const SizedBox(height: 20),
-            // Actividad física
-            _buildEvaluationCard(
-              title: 'Evaluación de Actividad Física (Preguntas 27-36)',
-              evaluation: ActividadFisicaService.evaluar(controller.user),
-              color: ActividadFisicaService.getColor(controller.user),
-              items: List.generate(10, (index) {
-                final pregunta = 'pr${index + 27}';
-                return '${index + 27}: ${controller.user[pregunta] ?? "N/A"}';
-              }),
-            ),
-            const SizedBox(height: 20),
             _buildPersonalityCard(controller.user),
-            const SizedBox(height: 20),
+            nivelSocioEconomico()
             // Resto de la información del usuario
             // ...existing user details...
           ],
         );
       }),
+    );
+  }
+
+  Container nivelSocioEconomico() {
+    final nivel = controller.getNivelSE();
+    final colorStr = SocioEconomicCalculator.getColor(controller.user);
+
+    IconData getIcon() {
+      switch (colorStr) {
+        case 'green':
+          return Icons.verified; // A/B - Máximo nivel
+        case 'lightgreen':
+          return Icons.check_circle; // C+ - Muy bueno
+        case 'blue':
+          return Icons.thumb_up; // C - Bueno
+        case 'yellow':
+          return Icons.warning_amber_rounded; // C- - Regular alto
+        case 'orange':
+          return Icons.warning; // D+ - Regular bajo
+        case 'red':
+          return Icons.error; // D - Bajo
+        case 'darkred':
+          return Icons.dangerous; // E - Muy bajo
+        default:
+          return Icons.help_outline;
+      }
+    }
+
+    Color getColor() {
+      switch (colorStr) {
+        case 'green':
+          return Colors.green;
+        case 'lightgreen':
+          return Colors.green.shade400;
+        case 'blue':
+          return Colors.blue;
+        case 'yellow':
+          return Colors.orange.shade700;
+        case 'orange':
+          return Colors.orange;
+        case 'red':
+          return Colors.red;
+        case 'darkred':
+          return Colors.red.shade900;
+        default:
+          return Colors.grey.shade700;
+      }
+    }
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.grey.shade100,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      padding: const EdgeInsets.all(20.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Evaluación de Nivel Socioeconómico',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.grey.shade700,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Icon(
+                getIcon(),
+                color: getColor(),
+                size: 40,
+              ),
+              const SizedBox(width: 15),
+              Expanded(
+                child: Text(
+                  nivel,
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: getColor(),
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 
@@ -82,7 +177,12 @@ class UserView extends GetView<UserController> {
               _buildInfoItem('Edad', '${user['age'] ?? 'N/A'} años'),
               _buildInfoItem('Género', user['gender'] ?? 'N/A'),
               _buildInfoItem('Ciudad', user['municipio'] ?? 'N/A'),
-              _buildInfoItem('Escuela', user['nombre_escuela'] ?? 'N/A'),
+              _buildInfoItem(
+                  'Escuela',
+                  user['nombre_escuela'].toString().isNotEmpty
+                      ? user['nombre_escuela']
+                      : user['sec_TamMad']),
+              _buildInfoItem('Horario', user['horario'] ?? 'N/A'),
               _buildInfoItem(
                   'Nivel Educativo', user['nivel_educativo'] ?? 'N/A'),
               _buildInfoItem('Peso', '${user['peso'] ?? 'N/A'} kg'),
@@ -130,65 +230,110 @@ class UserView extends GetView<UserController> {
     required String color,
     required List<String> items,
   }) {
-    final esSaludable = evaluation.toLowerCase().contains('saludable') ||
-        evaluation.toLowerCase().contains('activo');
-    final esAdvertencia = color == 'yellow' ||
-        evaluation.toLowerCase().contains('semi-activo') ||
-        evaluation.toLowerCase().contains('suficientes');
+    final esSaludable = evaluation.toLowerCase().contains('activo');
+    final esAdvertencia = evaluation.toLowerCase().contains('semi-activo');
+    final mostrarRecomendaciones = title.contains('Actividad Física') &&
+        (evaluation.toLowerCase().contains('semi-activo') ||
+            evaluation.toLowerCase().contains('sedentario'));
 
     return Container(
-      // decoration: BoxDecoration(
-      //   color: Colors.grey.shade200,
-      //   borderRadius: BorderRadius.circular(10),
-      // ),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              title,
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Colors.grey.shade700,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Row(
+      decoration: BoxDecoration(
+        color: Colors.grey.shade100,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(20.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(
-                  esSaludable
-                      ? Icons.check_circle
-                      : esAdvertencia
-                          ? Icons.warning_amber_rounded
-                          : Icons.dangerous,
-                  color: color == 'red'
-                      ? Colors.red
-                      : color == 'yellow'
-                          ? Colors.orange
-                          : Colors.green,
-                  size: 40, // Actualizado a 40
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.grey.shade700,
+                  ),
                 ),
-                const SizedBox(width: 15),
-                Expanded(
-                  child: Text(
-                    evaluation,
-                    style: TextStyle(
-                      fontSize: 16,
+                const SizedBox(height: 8),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      esSaludable
+                          ? Icons.check_circle
+                          : esAdvertencia
+                              ? Icons.warning_amber_rounded
+                              : Icons.dangerous,
                       color: color == 'red'
                           ? Colors.red
                           : color == 'yellow'
                               ? Colors.orange
                               : Colors.green,
-                      fontWeight: FontWeight.w500,
+                      size: 40, // Actualizado a 40
                     ),
-                  ),
+                    const SizedBox(width: 15),
+                    Expanded(
+                      child: Text(
+                        evaluation,
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: color == 'red'
+                              ? Colors.red
+                              : color == 'yellow'
+                                  ? Colors.orange
+                                  : Colors.green,
+                          fontWeight: FontWeight.w500,
+                        ),
+                        overflow: TextOverflow.visible,
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
+          ),
+          if (mostrarRecomendaciones) ...[
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.green.shade50,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Recomendaciones de la OMS (5-17 años)',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.green.shade800,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            ActividadFisicaService.getRecomendaciones(),
+                            style: const TextStyle(fontSize: 14, height: 1.5),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
           ],
-        ),
+        ],
       ),
     );
   }
@@ -198,17 +343,19 @@ class UserView extends GetView<UserController> {
     final color = PersonalidadService.getColor(resultado);
 
     return Container(
-      // decoration: BoxDecoration(
-      //   color: Colors.grey.shade200,
-      //   borderRadius: BorderRadius.circular(10),
-      // ),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade100,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      margin: const EdgeInsets.symmetric(vertical: 20),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Evaluación de Tipo de Personalidad (Preguntas 37-51)',
+              'Evaluación de Tipo de Personalidad',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
@@ -230,6 +377,7 @@ class UserView extends GetView<UserController> {
             ),
             const SizedBox(height: 20),
             Row(
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Icon(
                   resultado['tiene_ansiedad']
@@ -240,27 +388,22 @@ class UserView extends GetView<UserController> {
                       resultado['tiene_ansiedad'] ? Colors.red : Colors.green,
                 ),
                 const SizedBox(width: 15),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Subescala de Ansiedad (37-44):',
-                      style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: Colors.grey.shade700),
+                Expanded(
+                  child: Text(
+                    'Subescala de Ansiedad - Puntaje: ${resultado['puntaje_ansiedad']}/40: ${resultado['tiene_ansiedad'] ? 'Sugestivo de trastorno de ansiedad' : 'Sin riesgo de trastorno de ansiedad'}',
+                    style: TextStyle(
+                      color: resultado['tiene_ansiedad']
+                          ? Colors.red
+                          : Colors.green,
+                      fontWeight: FontWeight.w500,
                     ),
-                    Text('Puntaje: ${resultado['puntaje_ansiedad']} / 40'),
-                    Text(
-                      resultado['tiene_ansiedad']
-                          ? 'Sugestivo de trastorno de ansiedad'
-                          : 'Sin riesgo de trastorno de ansiedad',
-                    ),
-                  ],
+                  ),
                 ),
               ],
             ),
             const SizedBox(height: 20),
             Row(
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Icon(
                   resultado['tiene_depresion']
@@ -271,22 +414,16 @@ class UserView extends GetView<UserController> {
                       resultado['tiene_depresion'] ? Colors.red : Colors.green,
                 ),
                 const SizedBox(width: 15),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Subescala de Depresión (45-51):',
-                      style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: Colors.grey.shade700),
+                Expanded(
+                  child: Text(
+                    'Subescala de Depresión - Puntaje: ${resultado['puntaje_depresion']}/35: ${resultado['tiene_depresion'] ? 'Sugestivo de trastorno de depresión' : 'Sin riesgo de trastorno de depresión'}',
+                    style: TextStyle(
+                      color: resultado['tiene_depresion']
+                          ? Colors.red
+                          : Colors.green,
+                      fontWeight: FontWeight.w500,
                     ),
-                    Text('Puntaje: ${resultado['puntaje_depresion']} / 35'),
-                    Text(
-                      resultado['tiene_depresion']
-                          ? 'Sugestivo de trastorno de depresión'
-                          : 'Sin riesgo de trastorno de depresión',
-                    ),
-                  ],
+                  ),
                 ),
               ],
             ),
@@ -297,9 +434,12 @@ class UserView extends GetView<UserController> {
   }
 
   Widget _buildIndicesCard(Map<String, dynamic> user) {
+    final peso = double.tryParse(user['peso'].toString()) ?? 0;
+    final pesoAPerder = (peso * 0.10).toStringAsFixed(1);
+
     return Container(
       decoration: BoxDecoration(
-        // color: Colors.grey.shade200,
+        color: Colors.grey.shade100,
         borderRadius: BorderRadius.circular(10),
       ),
       child: Padding(
@@ -316,27 +456,95 @@ class UserView extends GetView<UserController> {
               ),
             ),
             const SizedBox(height: 16),
-            Wrap(
-              spacing: 40,
-              runSpacing: 16,
+            Row(
               children: [
-                _buildIndicador(
-                  'IMC',
-                  controller.getIMC(user),
-                ),
-                _buildIndicador(
-                  'Índice Cintura/Estatura',
-                  controller.getIndiceCircunferenciaCintura(),
-                ),
-                _buildIndicador(
-                  'Índice Cintura/Cadera',
-                  controller.getIndiceCircunferenciaCadera(),
-                ),
-                _buildPresionArterial(
-                  'Presión Arterial',
-                  controller.getPresionArterial(),
+                Expanded(
+                  child: Wrap(
+                    alignment: WrapAlignment.spaceBetween,
+                    runAlignment: WrapAlignment.center,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    spacing: 20,
+                    runSpacing: 10,
+                    children: [
+                      _buildIndicador('IMC', controller.getIMC(user)),
+                      _buildIndicador(
+                        'Índice Cintura/Estatura',
+                        controller.getIndiceCircunferenciaCintura(),
+                      ),
+                      _buildIndicador(
+                        'Índice Cintura/Cadera',
+                        controller.getIndiceCircunferenciaCadera(),
+                      ),
+                      _buildPresionArterial(
+                        'Presión Arterial',
+                        controller.getPresionArterial(),
+                      ),
+                    ],
+                  ),
                 ),
               ],
+            ),
+            const SizedBox(height: 30),
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.green.shade50,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          '¡ERES LO QUE COMES!',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.green,
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        const Text(
+                          'Las personas con sobrepeso y obesidad tienen mayor riesgo de desarrollar diabetes, hipertensión y otros problemas de salud.',
+                          style: TextStyle(fontSize: 14),
+                        ),
+                        const SizedBox(height: 20),
+                        Text(
+                          'Plan de Acción Diario',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.grey.shade800,
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        const Text(
+                          '• Dieta basada en el Plato del Bien Comer (verduras, frutas, cereales, proteínas)\n'
+                          '• 60 minutos de actividad física\n'
+                          '• 6-8 vasos de agua simple',
+                          style: TextStyle(fontSize: 14),
+                        ),
+                        const SizedBox(height: 20),
+                        Text(
+                          '¿Cuánto peso debo bajar?',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.grey.shade800,
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        Text(
+                          'Meta recomendada: $pesoAPerder kg en 6 meses (10% de tu peso actual)',
+                          style: const TextStyle(fontSize: 14),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
           ],
         ),
@@ -347,38 +555,42 @@ class UserView extends GetView<UserController> {
   Widget _buildIndicador(String titulo, String valor) {
     final esSaludable = valor.toLowerCase().contains('saludable');
     return SizedBox(
-      width: 300,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      width: 250,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Text(
-            titulo,
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w500,
-              color: Colors.grey.shade800,
-            ),
+          Icon(
+            esSaludable ? Icons.check_circle : Icons.warning_rounded,
+            color: esSaludable ? Colors.green : Colors.red,
+            size: 40,
           ),
-          const SizedBox(height: 4),
-          Row(
-            children: [
-              Icon(
-                esSaludable ? Icons.check_circle : Icons.warning_rounded,
-                color: esSaludable ? Colors.green : Colors.red,
-                size: 40, // Actualizado a 40
-              ),
-              const SizedBox(width: 15),
-              Expanded(
-                child: Text(
+          const SizedBox(width: 15), // Changed from height to width
+          Expanded(
+            // Added Expanded
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  titulo,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.grey.shade800,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
                   valor,
                   style: TextStyle(
-                    fontSize: 14,
+                    fontSize: 16,
                     color: esSaludable ? Colors.green : Colors.red,
                     fontWeight: FontWeight.w500,
                   ),
+                  overflow: TextOverflow.visible, // Added overflow
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ],
       ),
@@ -389,37 +601,99 @@ class UserView extends GetView<UserController> {
     final esNormal = evaluacion.toLowerCase().contains('normal');
     return SizedBox(
       width: 300,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Text(
-            titulo,
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w500,
-              color: Colors.grey.shade800,
-            ),
+          Icon(
+            esNormal ? Icons.check_circle : Icons.warning_rounded,
+            color: esNormal ? Colors.green : Colors.red,
+            size: 40,
           ),
-          const SizedBox(height: 4),
-          Row(
-            children: [
-              Icon(
-                esNormal ? Icons.check_circle : Icons.warning_rounded,
-                color: esNormal ? Colors.green : Colors.red,
-                size: 40, // Actualizado a 40
-              ),
-              const SizedBox(width: 15),
-              Expanded(
-                child: Text(
-                  evaluacion,
+          const SizedBox(width: 15),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  titulo,
                   style: TextStyle(
-                    fontSize: 14,
+                    fontSize: 16,
                     fontWeight: FontWeight.w500,
-                    color: esNormal ? Colors.green : Colors.red,
+                    color: Colors.grey.shade800,
                   ),
                 ),
-              ),
-            ],
+                const SizedBox(height: 4),
+                Text(
+                  evaluacion,
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: esNormal ? Colors.green : Colors.red,
+                    fontWeight: FontWeight.w500,
+                  ),
+                  overflow: TextOverflow.visible,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEstiloVidaTotal() {
+    final resultado = controller.getEstiloVidaTotal();
+
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: Colors.grey.shade100,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      padding: const EdgeInsets.all(16.0),
+      child: Row(
+        children: [
+          Icon(
+            resultado['color'] == 'green'
+                ? Icons.check_circle
+                : resultado['color'] == 'yellow'
+                    ? Icons.warning_amber_rounded
+                    : Icons.dangerous,
+            color: resultado['color'] == 'green'
+                ? Colors.green
+                : resultado['color'] == 'yellow'
+                    ? Colors.orange
+                    : Colors.red,
+            size: 40,
+          ),
+          const SizedBox(width: 15),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Evaluación General del Estilo de Vida',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.grey.shade800,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  '${resultado['evaluacion']} (${resultado['puntaje']} puntos)',
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: resultado['color'] == 'green'
+                        ? Colors.green
+                        : resultado['color'] == 'yellow'
+                            ? Colors.orange
+                            : Colors.red,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
