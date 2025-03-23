@@ -1,0 +1,2 @@
+/home/lara5tar/Escritorio/vida_saludable/android/app/.cxx/RelWithDebInfo/4o2t6s51/armeabi-v7a/CMakeFiles/edit_cache.dir
+/home/lara5tar/Escritorio/vida_saludable/android/app/.cxx/RelWithDebInfo/4o2t6s51/armeabi-v7a/CMakeFiles/rebuild_cache.dir

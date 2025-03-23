@@ -1,5 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+// import 'package:flutter/material.dart';
 
 import '../../../data/services/calculadora_imc_service.dart';
 import '../../../data/services/nivel_socioeconomico.dart';
@@ -7,6 +9,7 @@ import '../../../data/services/presion_arterial_service.dart';
 
 class UserController extends GetxController {
   var user = <String, dynamic>{}.obs;
+  Map<String, dynamic> userEditInfo = {};
 
   @override
   void onInit() {
@@ -14,6 +17,7 @@ class UserController extends GetxController {
     final userId = Get.parameters['id'];
     if (userId != null && userId.isNotEmpty) {
       getUser(userId);
+      // userEditInfo = Map<String, dynamic>.from(user);
     } else {
       // isLoading.value = false;
     }
@@ -32,6 +36,9 @@ class UserController extends GetxController {
       if (result.exists) {
         user.value = Map<String, dynamic>.from(result.data() ?? {});
         user['id'] = userId;
+
+        userEditInfo.clear();
+        userEditInfo = Map<String, dynamic>.from(user);
       }
     } catch (e) {
       print('Error getting user data: $e');
@@ -40,6 +47,51 @@ class UserController extends GetxController {
       // isLoading.value = false;
     }
   }
+
+  saveUser() async {
+    print(userEditInfo);
+    //pasa a int los valores de edad, peso, estatura, cintura, cadera, sistolica y diastolica
+    userEditInfo['age'] = int.tryParse(userEditInfo['age'].toString()) ?? 0;
+    userEditInfo['peso'] =
+        double.tryParse(userEditInfo['peso'].toString()) ?? 0;
+    userEditInfo['estatura'] =
+        double.tryParse(userEditInfo['estatura'].toString()) ?? 0;
+    userEditInfo['cintura'] =
+        double.tryParse(userEditInfo['cintura'].toString()) ?? 0;
+    userEditInfo['cadera'] =
+        double.tryParse(userEditInfo['cadera'].toString()) ?? 0;
+    userEditInfo['sistolica'] =
+        double.tryParse(userEditInfo['sistolica'].toString()) ?? 0;
+    userEditInfo['diastolica'] =
+        double.tryParse(userEditInfo['diastolica'].toString()) ?? 0;
+
+    try {
+      // isLoading.value = true;
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user['id'])
+          .update(userEditInfo);
+
+      user.value = Map<String, dynamic>.from(userEditInfo);
+
+      Get.snackbar(
+        'Datos actualizados',
+        'Los datos del usuario han sido actualizados correctamente',
+        backgroundColor: Colors.green,
+        colorText: Colors.white,
+      );
+    } catch (e) {
+      print('Error saving user data: $e');
+    } finally {
+      // isLoading.value = false;
+    }
+  }
+
+  updateField(String field, dynamic value) {
+    userEditInfo[field] = value;
+  }
+
+  deleteUser() async {}
 
   String getIMC(Map<String, dynamic> userData) {
     final peso = double.tryParse(userData['peso'].toString());

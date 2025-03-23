@@ -160,37 +160,87 @@ class UserView extends GetView<UserController> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Información Personal',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: Colors.green,
-            ),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Información Personal',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.green.shade700,
+                  ),
+                ),
+              ),
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade200,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: IconButton(
+                  icon: const Icon(Icons.edit, color: Colors.green, size: 20),
+                  onPressed: () {
+                    controller.saveUser();
+                  },
+                  tooltip: 'Editar información',
+                ),
+              ),
+              const SizedBox(width: 10),
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.red.shade100,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: IconButton(
+                  icon: const Icon(Icons.delete, color: Colors.red, size: 20),
+                  onPressed: () {
+                    // Mostrar diálogo de confirmación
+                    controller.deleteUser();
+                  },
+                  tooltip: 'Eliminar usuario',
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 20),
           Wrap(
             spacing: 40,
-            runSpacing: 16,
+            runSpacing: 20,
             children: [
-              _buildInfoItem('Nombre', user['name'] ?? 'N/A'),
-              _buildInfoItem('Edad', '${user['age'] ?? 'N/A'} años'),
-              _buildInfoItem('Género', user['gender'] ?? 'N/A'),
-              _buildInfoItem('Ciudad', user['municipio'] ?? 'N/A'),
+              _buildInfoItem('Nombre', user['name'] ?? '', 'name'),
+              _buildInfoItem('Edad', '${user['age'] ?? ''}', 'age',
+                  suffix: 'años'),
+              _buildInfoItem('Género', user['gender'] ?? '', 'gender'),
+              _buildInfoItem('Ciudad', user['municipio'] ?? '', 'municipio'),
               _buildInfoItem(
                   'Escuela',
                   user['nombre_escuela'].toString().isNotEmpty
                       ? user['nombre_escuela']
-                      : user['sec_TamMad']),
-              _buildInfoItem('Horario', user['horario'] ?? 'N/A'),
+                      : user['sec_TamMad'],
+                  user['nombre_escuela'].toString().isNotEmpty
+                      ? 'nombre_escuela'
+                      : 'sec_TamMad'),
+              _buildInfoItem('Horario', user['horario'] ?? '', 'horario'),
+              _buildInfoItem('Nivel Educativo', user['nivel_educativo'] ?? '',
+                  'nivel_educativo'),
+              _buildInfoItem('Peso', '${user['peso'] ?? ''}', 'peso',
+                  suffix: 'kg'),
               _buildInfoItem(
-                  'Nivel Educativo', user['nivel_educativo'] ?? 'N/A'),
-              _buildInfoItem('Peso', '${user['peso'] ?? 'N/A'} kg'),
-              _buildInfoItem('Estatura', '${user['estatura'] ?? 'N/A'} m'),
-              _buildInfoItem('Cintura', '${user['cintura'] ?? 'N/A'} cm'),
-              _buildInfoItem('Cadera', '${user['cadera'] ?? 'N/A'} cm'),
-              if (user['enfermedades'] != null && user['enfermedades'] != 'No')
-                _buildInfoItem('Enfermedades', user['enfermedades']),
+                  'Estatura', '${user['estatura'] ?? ''}', 'estatura',
+                  suffix: 'm'),
+              _buildInfoItem('Cintura', '${user['cintura'] ?? ''}', 'cintura',
+                  suffix: 'cm'),
+              _buildInfoItem('Cadera', '${user['cadera'] ?? ''}', 'cadera',
+                  suffix: 'cm'),
+              _buildInfoItem(
+                  'Sistólica', '${user['sistolica'] ?? ''}', 'sistolica',
+                  suffix: 'mmHg'),
+              _buildInfoItem(
+                  'Diastólica', '${user['diastolica'] ?? ''}', 'diastolica',
+                  suffix: 'mmHg'),
+              if (user['enfermedades'] != null)
+                _buildInfoItem(
+                    'Enfermedades', user['enfermedades'], 'enfermedades'),
             ],
           ),
         ],
@@ -198,7 +248,8 @@ class UserView extends GetView<UserController> {
     );
   }
 
-  Widget _buildInfoItem(String label, String value) {
+  Widget _buildInfoItem(String label, String value, String index,
+      {String? suffix}) {
     return SizedBox(
       width: 200,
       child: Column(
@@ -211,14 +262,40 @@ class UserView extends GetView<UserController> {
               color: Colors.grey,
             ),
           ),
-          Text(
-            value,
+          TextField(
+            controller: TextEditingController(text: value),
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w500,
               color: Colors.grey.shade800,
             ),
+            onChanged: (value) => controller.updateField(index, value),
+            decoration: InputDecoration(
+              isDense: true,
+              contentPadding: const EdgeInsets.symmetric(
+                vertical: 20,
+              ),
+              border: InputBorder.none,
+              suffixIcon: Text(
+                suffix ?? '',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.grey.shade500,
+                ),
+              ),
+              suffixIconConstraints: const BoxConstraints(
+                // minWidth: 20,
+                minHeight: 20,
+              ),
+              // suffixText: suffix,
+            ),
           ),
+          Container(
+            height: 1,
+            color: Colors.grey.shade300,
+            // margin: const EdgeInsets.symmetric(vertical: 8),
+          )
         ],
       ),
     );
