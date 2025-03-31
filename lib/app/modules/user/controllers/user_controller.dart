@@ -49,7 +49,6 @@ class UserController extends GetxController {
   }
 
   saveUser() async {
-    print(userEditInfo);
     //pasa a int los valores de edad, peso, estatura, cintura, cadera, sistolica y diastolica
     userEditInfo['age'] = int.tryParse(userEditInfo['age'].toString()) ?? 0;
     userEditInfo['peso'] =

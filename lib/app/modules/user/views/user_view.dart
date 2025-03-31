@@ -223,7 +223,7 @@ class UserView extends GetView<UserController> {
               _buildInfoItem('Horario', user['horario'] ?? '', 'horario'),
               _buildInfoItem('Nivel Educativo', user['nivel_educativo'] ?? '',
                   'nivel_educativo'),
-              _buildInfoItem('Peso', '${user['peso'] ?? ''}', 'peso',
+              _buildInfoItem('Peso', '${user['peso'] ?? ''}', 'pes',
                   suffix: 'kg'),
               _buildInfoItem(
                   'Estatura', '${user['estatura'] ?? ''}', 'estatura',

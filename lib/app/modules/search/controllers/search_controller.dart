@@ -31,10 +31,10 @@ class SearchController extends GetxController {
         data['id'] = doc.id; // Add document ID to the data
 
         //imprimir todos los datos del usuario con tipo de dato
-        for (var key in data.keys) {
-          print('$key: ${data[key]} -> ${data[key].runtimeType}');
-        }
-        print('---------------------------------');
+        // for (var key in data.keys) {
+        //   print('$key: ${data[key]} -> ${data[key].runtimeType}');
+        // }
+        // print('---------------------------------');
 
         return data;
       }).toList();

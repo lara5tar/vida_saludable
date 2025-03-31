@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:vida_saludable/app/data/services/auth_service.dart';
+import 'package:vida_saludable/app/routes/app_pages.dart';
 import 'package:vida_saludable/app/widgets/custom_button.dart';
 
 class CustomScaffold extends StatelessWidget {
   final Widget? body;
+  final AuthService _authService = Get.find<AuthService>();
 
-  const CustomScaffold({
+  CustomScaffold({
     super.key,
     this.body,
   });
@@ -26,15 +29,40 @@ class CustomScaffold extends StatelessWidget {
           CustomButton(
             icon: Icons.home,
             text: 'Inicio',
-            onPressed: () => Get.toNamed('/home'),
-            backgroundColor: isCurrentRoute('/home'),
+            onPressed: () => Get.toNamed(Routes.HOME),
+            backgroundColor: isCurrentRoute(Routes.HOME),
             isMobile: isMobile,
           ),
           CustomButton(
             icon: Icons.search,
             text: 'Buscar',
-            onPressed: () => Get.toNamed('/search'),
-            backgroundColor: isCurrentRoute('/search'),
+            onPressed: () => Get.toNamed(Routes.SEARCH),
+            backgroundColor: isCurrentRoute(Routes.SEARCH),
+            isMobile: isMobile,
+          ),
+          // Mostrar botón de administración solo si el usuario es administrador
+          Obx(() {
+            if (_authService.isAdmin.value) {
+              return CustomButton(
+                icon: Icons.admin_panel_settings,
+                text: 'Administrar Usuarios',
+                onPressed: () => Get.toNamed(Routes.ADMIN),
+                backgroundColor: isCurrentRoute(Routes.ADMIN),
+                isMobile: isMobile,
+              );
+            } else {
+              return const SizedBox.shrink();
+            }
+          }),
+          const SizedBox(height: 20),
+          // Botón para cerrar sesión
+          CustomButton(
+            icon: Icons.logout,
+            text: 'Cerrar Sesión',
+            onPressed: () {
+              _showLogoutDialog(context);
+            },
+            backgroundColor: Colors.grey.shade700,
             isMobile: isMobile,
           ),
         ],
@@ -99,7 +127,7 @@ class CustomScaffold extends StatelessWidget {
               children: [
                 Container(
                   color: Colors.grey.shade200,
-                  width: 200,
+                  width: 250,
                   child: Column(
                     children: [
                       logo(),
@@ -127,6 +155,33 @@ class CustomScaffold extends StatelessWidget {
           height: 80,
           fit: BoxFit.contain,
         ),
+      ),
+    );
+  }
+
+  // Diálogo para confirmar cierre de sesión
+  void _showLogoutDialog(BuildContext context) {
+    Get.dialog(
+      AlertDialog(
+        title: const Text('Cerrar Sesión'),
+        content: const Text('¿Estás seguro de que quieres cerrar la sesión?'),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              _authService.logout();
+              Get.offAllNamed(Routes.LOGIN);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.green.shade700,
+            ),
+            child: const Text('Cerrar Sesión',
+                style: TextStyle(color: Colors.white)),
+          ),
+        ],
       ),
     );
   }
