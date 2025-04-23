@@ -14,7 +14,9 @@ class AdminController extends GetxController {
 
   // Reemplazamos el TextEditingController por una variable reactiva para la escuela seleccionada
   var selectedEscuela = ''.obs;
-  var escuelas = <String>[].obs;
+  var selectedEscuelaId = ''.obs; // ID de la escuela seleccionada
+  var escuelas = <Map<String, dynamic>>[]
+      .obs; // Ahora almacenamos objeto completo con ID y nombre
 
   RxBool isAdmin = false.obs;
   RxBool isLoading = false.obs;
@@ -28,12 +30,14 @@ class AdminController extends GetxController {
   // Variable reactiva para edición de escuela
   var editingUserId = ''.obs;
   var editingEscuela = ''.obs;
+  var editingEscuelaId = ''.obs;
 
   @override
   void onInit() {
     super.onInit();
     loadUsers();
     loadAllUsers();
+    loadEscuelas();
   }
 
   @override
@@ -45,6 +49,45 @@ class AdminController extends GetxController {
     super.onClose();
   }
 
+  // Cargar la lista de escuelas desde Firestore
+  Future<void> loadEscuelas() async {
+    try {
+      isLoading.value = true;
+
+      // Primero intentamos cargar desde la colección 'schools' si existe
+      var schoolsSnapshot =
+          await FirebaseFirestore.instance.collection('schools').get();
+
+      if (schoolsSnapshot.docs.isNotEmpty) {
+        escuelas.value = schoolsSnapshot.docs.map((doc) {
+          return {
+            'id': doc.id,
+            'nombre': doc.data()['nombre'] ?? 'Sin nombre',
+          };
+        }).toList();
+      } else {
+        // Si no hay colección 'schools', usamos las escuelas de los usuarios como respaldo
+        escuelas.value = getEscuelasUnicas();
+      }
+
+      // Seleccionar la primera escuela por defecto si hay alguna
+      if (escuelas.isNotEmpty) {
+        selectedEscuela.value = escuelas[0]['nombre'];
+        selectedEscuelaId.value = escuelas[0]['id'];
+      }
+    } catch (e) {
+      print('Error al cargar escuelas: $e');
+      Get.snackbar(
+        'Error',
+        'No se pudieron cargar las escuelas: $e',
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
   Future<void> loadAllUsers() async {
     try {
       var result = await FirebaseFirestore.instance.collection('users').get();
@@ -54,33 +97,63 @@ class AdminController extends GetxController {
         return data;
       }).toList();
 
-      escuelas.value = getEscuelasUnicas();
-      if (escuelas.isNotEmpty) {
-        selectedEscuela.value = escuelas[0];
+      // Si no tenemos escuelas cargadas, intentamos obtenerlas de los usuarios
+      if (escuelas.isEmpty) {
+        escuelas.value = getEscuelasUnicas();
+        if (escuelas.isNotEmpty) {
+          selectedEscuela.value = escuelas[0]['nombre'];
+          selectedEscuelaId.value = escuelas[0]['id'];
+        }
       }
     } catch (e) {
       print('Error al cargar usuarios: $e');
     }
   }
 
-  List<String> getEscuelasUnicas() {
-    Set<String> escuelas = {};
+  List<Map<String, dynamic>> getEscuelasUnicas() {
+    Set<String> nombreEscuelas = {};
+    Map<String, String> escuelasMap =
+        {}; // Nombre de escuela -> ID (para evitar duplicados)
 
     for (var user in allUsers) {
       // Agregar escuela del campo nombre_escuela si existe y no está vacío
       if (user['nombre_escuela'] != null &&
           user['nombre_escuela'].toString().isNotEmpty) {
-        escuelas.add(user['nombre_escuela'].toString());
+        nombreEscuelas.add(user['nombre_escuela'].toString());
+        // Si tiene schoolId, lo guardamos
+        if (user['schoolId'] != null &&
+            user['schoolId'].toString().isNotEmpty) {
+          escuelasMap[user['nombre_escuela'].toString()] =
+              user['schoolId'].toString();
+        }
       }
+
       // Agregar escuela del campo sec_TamMad si existe y no está vacío
       if (user['sec_TamMad'] != null &&
           user['sec_TamMad'].toString().isNotEmpty) {
-        escuelas.add(user['sec_TamMad'].toString());
+        nombreEscuelas.add(user['sec_TamMad'].toString());
+        // Si tiene schoolId, lo guardamos
+        if (user['schoolId'] != null &&
+            user['schoolId'].toString().isNotEmpty) {
+          escuelasMap[user['sec_TamMad'].toString()] =
+              user['schoolId'].toString();
+        }
       }
     }
 
-    // Convertir a lista y ordenar alfabéticamente
-    var listaEscuelas = escuelas.toList()..sort();
+    // Convertir a lista de mapas con nombre e ID
+    List<Map<String, dynamic>> listaEscuelas = nombreEscuelas.map((nombre) {
+      return {
+        'nombre': nombre,
+        'id': escuelasMap[nombre] ??
+            nombre, // Si no hay ID, usamos el nombre como ID
+      };
+    }).toList();
+
+    // Ordenar alfabéticamente por nombre
+    listaEscuelas.sort(
+        (a, b) => a['nombre'].toString().compareTo(b['nombre'].toString()));
+
     return listaEscuelas;
   }
 
@@ -109,19 +182,12 @@ class AdminController extends GetxController {
 
     isLoading.value = true;
     try {
-      final userData = {
-        'email': emailController.text.trim(),
-        'password': passwordController.text,
-        'name': nameController.text.trim(),
-        'isAdmin': isAdmin.value,
-        'nombre_escuela': selectedEscuela.value,
-      };
-
       final result = await _authService.createSuperUser(
         emailController.text.trim(),
         passwordController.text,
         nameController.text.trim(),
         isAdmin.value,
+        schoolId: selectedEscuelaId.value, // Pasar el ID de la escuela
       );
 
       if (result) {
@@ -175,10 +241,11 @@ class AdminController extends GetxController {
       return false;
     }
 
-    if (selectedEscuela.isEmpty) {
+    // Solo requerimos escuela para usuarios normales
+    if (!isAdmin.value && selectedEscuelaId.isEmpty) {
       Get.snackbar(
         'Error',
-        'Debes seleccionar una escuela',
+        'Debes seleccionar una escuela para usuarios normales',
         backgroundColor: Colors.red,
         colorText: Colors.white,
       );
@@ -194,9 +261,11 @@ class AdminController extends GetxController {
     passwordController.clear();
     confirmPasswordController.clear();
     if (escuelas.isNotEmpty) {
-      selectedEscuela.value = escuelas[0];
+      selectedEscuela.value = escuelas[0]['nombre'];
+      selectedEscuelaId.value = escuelas[0]['id'];
     } else {
       selectedEscuela.value = '';
+      selectedEscuelaId.value = '';
     }
     isAdmin.value = false;
   }
@@ -212,29 +281,36 @@ class AdminController extends GetxController {
   }
 
   // Método para iniciar la edición de la escuela de un usuario
-  void startEditingEscuela(String userId, String currentEscuela) {
+  void startEditingEscuela(
+      String userId, String currentEscuela, String currentEscuelaId) {
     editingUserId.value = userId;
     editingEscuela.value = currentEscuela;
+    editingEscuelaId.value = currentEscuelaId;
   }
 
   // Método para cancelar la edición
   void cancelEditingEscuela() {
     editingUserId.value = '';
     editingEscuela.value = '';
+    editingEscuelaId.value = '';
   }
 
   // Método para guardar la escuela de un usuario
-  Future<void> saveUserEscuela(String userId, String newEscuela) async {
+  Future<void> saveUserEscuela(
+      String userId, String newEscuelaId, String newEscuelaNombre) async {
     isLoading.value = true;
     try {
-      await _authService
-          .updateSuperUserData(userId, {'nombre_escuela': newEscuela});
+      // Actualizar el ID de la escuela y el nombre para mantener la compatibilidad
+      await _authService.updateSuperUserData(userId,
+          {'schoolId': newEscuelaId, 'nombre_escuela': newEscuelaNombre});
+
       Get.snackbar(
         'Éxito',
         'Escuela actualizada correctamente',
         backgroundColor: Colors.green,
         colorText: Colors.white,
       );
+
       cancelEditingEscuela();
       await loadUsers();
     } catch (e) {
@@ -247,6 +323,18 @@ class AdminController extends GetxController {
     } finally {
       isLoading.value = false;
     }
+  }
+
+  // Seleccionar una escuela (para el formulario de creación de usuarios)
+  void selectEscuela(String escuelaId, String escuelaNombre) {
+    selectedEscuelaId.value = escuelaId;
+    selectedEscuela.value = escuelaNombre;
+  }
+
+  // Seleccionar una escuela (para editar la escuela de un usuario)
+  void selectEditingEscuela(String escuelaId, String escuelaNombre) {
+    editingEscuelaId.value = escuelaId;
+    editingEscuela.value = escuelaNombre;
   }
 
   Future<void> resetUserPassword(String userId) async {

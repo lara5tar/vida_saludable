@@ -1,5 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get/get.dart';
+import 'package:vida_saludable/app/data/services/auth_service.dart';
+import 'package:flutter/material.dart';
 
 import '../../../data/services/calculadora_imc_service.dart';
 import '../../../data/services/random_forms.dart';
@@ -8,6 +10,7 @@ class SearchController extends GetxController {
   var isLoading = true.obs;
   var searchQuery = ''.obs;
   var filters = <String, dynamic>{}.obs;
+  final authService = Get.find<AuthService>();
 
   var isTestUser = false.obs;
 
@@ -25,24 +28,48 @@ class SearchController extends GetxController {
 
   Future<List<Map<String, dynamic>>> getUsers() async {
     try {
-      var result = await FirebaseFirestore.instance.collection('users').get();
+      isLoading.value = true;
+
+      // Crear consulta base
+      Query<Map<String, dynamic>> query =
+          FirebaseFirestore.instance.collection('users');
+
+      // Si el usuario no es administrador, filtrar por escuela asignada
+      if (!authService.isAdmin.value &&
+          authService.assignedSchoolId.value.isNotEmpty) {
+        print(
+            '🔍 Filtrando por escuela: ${authService.assignedSchoolId.value}');
+        // Filtrar usuarios por el ID de escuela asignada
+        var queryByTamMad = query.where('sec_TamMad',
+            isEqualTo: authService.assignedSchoolId.value);
+
+        var resultByTamMad = await queryByTamMad.get();
+
+        // Si encontramos resultados con sec_TamMad, usamos esta consulta
+        if (resultByTamMad.docs.isNotEmpty) {
+          query = queryByTamMad;
+        } else {
+          // Si no, intentamos filtrar por nombre_escuela
+          query = query.where('nombre_escuela',
+              isEqualTo: authService.assignedSchoolId.value);
+        }
+      }
+
+      var result = await query.get();
+
       users.value = result.docs.map((doc) {
         final data = doc.data();
         data['id'] = doc.id; // Add document ID to the data
-
-        //imprimir todos los datos del usuario con tipo de dato
-        // for (var key in data.keys) {
-        //   print('$key: ${data[key]} -> ${data[key].runtimeType}');
-        // }
-        // print('---------------------------------');
-
         return data;
       }).toList();
+
       filterUsers();
-      isLoading.value = false;
       return users;
     } catch (e) {
+      print('❌ Error al obtener usuarios: $e');
       return [];
+    } finally {
+      isLoading.value = false;
     }
   }
 
@@ -183,6 +210,17 @@ class SearchController extends GetxController {
   }
 
   void updateFilter(String key, dynamic value) {
+    // No permitir que usuarios no administradores usen el filtro de escuela
+    if (key == 'escuela' && !authService.isAdmin.value) {
+      Get.snackbar(
+        'Acceso restringido',
+        'Solo los administradores pueden filtrar por escuela',
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+      return;
+    }
+
     filters[key] = value;
     currentPage.value = 0; // Reset to first page when applying new filters
     filterUsers();

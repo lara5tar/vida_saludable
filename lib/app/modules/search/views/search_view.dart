@@ -38,13 +38,15 @@ class SearchView extends GetView<local.SearchController> {
                   child: Row(
                     spacing: 20,
                     children: [
-                      CustomDropdown(
-                        hint: 'Escuela',
-                        value: controller.filters['escuela'],
-                        items: controller.getEscuelasUnicas(),
-                        onChanged: (value) =>
-                            controller.updateFilter('escuela', value),
-                      ),
+                      // Solo mostrar el filtro de escuela si el usuario es administrador
+                      if (controller.authService.isAdmin.value)
+                        CustomDropdown(
+                          hint: 'Escuela',
+                          value: controller.filters['escuela'],
+                          items: controller.getEscuelasUnicas(),
+                          onChanged: (value) =>
+                              controller.updateFilter('escuela', value),
+                        ),
                       CustomDropdown(
                         hint: 'Género',
                         value: controller.filters['gender'],

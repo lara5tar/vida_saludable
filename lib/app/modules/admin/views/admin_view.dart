@@ -72,43 +72,75 @@ class AdminView extends GetView<AdminController> {
 
                     const SizedBox(height: 20),
 
-                    // Reemplazamos el TextField por un DropdownButton
-                    Obx(() => Container(
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(10),
-                            border: Border.all(color: Colors.grey.shade400),
-                          ),
-                          padding: const EdgeInsets.symmetric(horizontal: 10),
-                          child: DropdownButtonHideUnderline(
-                            child: DropdownButton<String>(
-                              value: controller.selectedEscuela.value.isNotEmpty
-                                  ? controller.selectedEscuela.value
-                                  : null,
-                              hint: const Text('Selecciona una escuela'),
-                              isExpanded: true,
-                              icon: const Icon(Icons.arrow_drop_down),
-                              elevation: 16,
-                              onChanged: (String? newValue) {
-                                if (newValue != null) {
-                                  controller.selectedEscuela.value = newValue;
-                                }
-                              },
-                              items: controller.escuelas
-                                  .map<DropdownMenuItem<String>>(
-                                      (String value) {
-                                return DropdownMenuItem<String>(
-                                  value: value,
-                                  child: Text(
-                                    value,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                );
-                              }).toList(),
-                            ),
-                          ),
-                        )),
+                    // Dropdown para seleccionar escuela
+                    Obx(() {
+                      // Solo mostrar el selector de escuela si el usuario no es admin
+                      // o si aún no se ha determinado
+                      bool showSchoolSelector = !controller.isAdmin.value;
 
-                    const SizedBox(height: 15),
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (showSchoolSelector) ...[
+                            const Text(
+                              'Escuela asignada:',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey,
+                              ),
+                            ),
+                            const SizedBox(height: 5),
+                            Container(
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(color: Colors.grey.shade400),
+                              ),
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 10),
+                              child: DropdownButtonHideUnderline(
+                                child: DropdownButton<String>(
+                                  value: controller
+                                          .selectedEscuelaId.value.isNotEmpty
+                                      ? controller.selectedEscuelaId.value
+                                      : null,
+                                  hint: const Text('Selecciona una escuela'),
+                                  isExpanded: true,
+                                  icon: const Icon(Icons.arrow_drop_down),
+                                  elevation: 16,
+                                  onChanged: (String? newValue) {
+                                    if (newValue != null) {
+                                      // Encontrar el nombre de la escuela seleccionada
+                                      final escuela =
+                                          controller.escuelas.firstWhere(
+                                        (e) => e['id'] == newValue,
+                                        orElse: () => {
+                                          'id': newValue,
+                                          'nombre': 'Desconocida'
+                                        },
+                                      );
+                                      controller.selectEscuela(
+                                          newValue, escuela['nombre']);
+                                    }
+                                  },
+                                  items: controller.escuelas
+                                      .map<DropdownMenuItem<String>>(
+                                          (Map<String, dynamic> escuela) {
+                                    return DropdownMenuItem<String>(
+                                      value: escuela['id'],
+                                      child: Text(
+                                        escuela['nombre'],
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    );
+                                  }).toList(),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 15),
+                          ],
+                        ],
+                      );
+                    }),
 
                     Obx(() => TextField(
                           controller: controller.passwordController,
@@ -188,7 +220,6 @@ class AdminView extends GetView<AdminController> {
                                   'Crear Usuario',
                                   style: TextStyle(
                                     fontSize: 16,
-                                    // fontWeight: FontWeight.bold,
                                     color: Colors.white,
                                   ),
                                 ),
@@ -259,6 +290,7 @@ class AdminView extends GetView<AdminController> {
                           controller.editingUserId.value == userId;
                       final String currentEscuela =
                           user['nombre_escuela'] ?? '';
+                      final String currentEscuelaId = user['schoolId'] ?? '';
 
                       return DataRow(cells: [
                         DataCell(Text(user['name'] ?? 'Sin nombre')),
@@ -276,26 +308,35 @@ class AdminView extends GetView<AdminController> {
                                   children: [
                                     Expanded(
                                       child: DropdownButton<String>(
-                                        value: controller
-                                                .editingEscuela.value.isNotEmpty
-                                            ? controller.editingEscuela.value
+                                        value: controller.editingEscuelaId.value
+                                                .isNotEmpty
+                                            ? controller.editingEscuelaId.value
                                             : null,
                                         hint: const Text('Selecciona'),
                                         isExpanded: true,
                                         icon: const Icon(Icons.arrow_drop_down),
                                         onChanged: (String? newValue) {
                                           if (newValue != null) {
-                                            controller.editingEscuela.value =
-                                                newValue;
+                                            // Encontrar el nombre de la escuela seleccionada
+                                            final escuela =
+                                                controller.escuelas.firstWhere(
+                                              (e) => e['id'] == newValue,
+                                              orElse: () => {
+                                                'id': newValue,
+                                                'nombre': 'Desconocida'
+                                              },
+                                            );
+                                            controller.selectEditingEscuela(
+                                                newValue, escuela['nombre']);
                                           }
                                         },
                                         items: controller.escuelas
                                             .map<DropdownMenuItem<String>>(
-                                                (String value) {
+                                                (Map<String, dynamic> escuela) {
                                           return DropdownMenuItem<String>(
-                                            value: value,
+                                            value: escuela['id'],
                                             child: Text(
-                                              value,
+                                              escuela['nombre'],
                                               overflow: TextOverflow.ellipsis,
                                             ),
                                           );
@@ -308,6 +349,7 @@ class AdminView extends GetView<AdminController> {
                                       onPressed: () =>
                                           controller.saveUserEscuela(
                                         userId,
+                                        controller.editingEscuelaId.value,
                                         controller.editingEscuela.value,
                                       ),
                                       tooltip: 'Guardar',
@@ -341,6 +383,7 @@ class AdminView extends GetView<AdminController> {
                                         controller.startEditingEscuela(
                                       userId,
                                       currentEscuela,
+                                      currentEscuelaId,
                                     ),
                                     tooltip: 'Editar escuela',
                                   ),

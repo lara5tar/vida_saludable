@@ -13,6 +13,9 @@ class AuthService extends GetxService {
   RxBool isAdmin = false.obs;
   RxBool isInitialized = false.obs;
 
+  // Variable para almacenar el ID de la escuela asignada al usuario
+  RxString assignedSchoolId = RxString('');
+
   // Método para inicializar el servicio
   Future<AuthService> init() async {
     try {
@@ -27,6 +30,7 @@ class AuthService extends GetxService {
           await checkAdminStatus();
         } else {
           isAdmin.value = false;
+          assignedSchoolId.value = '';
         }
 
         // Marcar como inicializado después de configurar el estado inicial
@@ -65,20 +69,40 @@ class AuthService extends GetxService {
           print(
               '⚠️ El documento del usuario no existe en Firestore: ${user.value!.uid}');
           isAdmin.value = false;
+          assignedSchoolId.value = '';
           return;
         }
 
         final adminStatus = userData.data()?['isAdmin'] == true;
         isAdmin.value = adminStatus;
 
+        // Obtener el ID de la escuela asignada (si existe)
+        assignedSchoolId.value = userData.data()?['nombre_escuela'] ?? '';
+
         print(
             '✅ Verificación de administrador para el usuario ${user.value!.email}: ${isAdmin.value}');
         print('📄 Datos del usuario: ${userData.data()}');
+        print('🏫 Escuela asignada: ${assignedSchoolId.value}');
       }
     } catch (e) {
       print('❌ Error al verificar el estado de administrador: $e');
       isAdmin.value = false;
+      assignedSchoolId.value = '';
     }
+  }
+
+  // Obtener el ID de la escuela asignada al usuario actual
+  String getAssignedSchoolId() {
+    return assignedSchoolId.value;
+  }
+
+  // Verificar si el usuario tiene acceso a una escuela específica
+  bool hasAccessToSchool(String schoolId) {
+    // Los administradores tienen acceso a todas las escuelas
+    if (isAdmin.value) return true;
+
+    // Los usuarios normales solo tienen acceso a su escuela asignada
+    return assignedSchoolId.value == schoolId;
   }
 
   // Iniciar sesión con correo y contraseña
@@ -108,6 +132,7 @@ class AuthService extends GetxService {
       await _auth.signOut();
       user.value = null;
       isAdmin.value = false;
+      assignedSchoolId.value = '';
     } catch (e) {
       Get.snackbar(
         'Error al cerrar sesión',
@@ -187,7 +212,8 @@ class AuthService extends GetxService {
 
   // Crear un nuevo usuario (solo para administradores)
   Future<bool> createSuperUser(
-      String email, String password, String name, bool makeAdmin) async {
+      String email, String password, String name, bool makeAdmin,
+      {String schoolId = ''}) async {
     try {
       if (!isAdmin.value) {
         throw Exception('No tienes permisos de administrador');
@@ -207,6 +233,7 @@ class AuthService extends GetxService {
         'email': email,
         'name': name,
         'isAdmin': makeAdmin,
+        'schoolId': schoolId, // Guardar la escuela asignada
         'createdAt': Timestamp.now(),
       });
 
