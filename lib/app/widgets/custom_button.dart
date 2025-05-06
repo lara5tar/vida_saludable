@@ -36,22 +36,27 @@ class CustomButton extends StatelessWidget {
               // borderRadius: BorderRadius.circular(8),
               ),
         ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.start,
-          children: [
-            Icon(
-              icon,
-              color: textColor ?? Colors.white,
-            ),
-            const SizedBox(width: 20),
-            Text(
-              text,
-              style: TextStyle(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4.0),
+          child: Row(
+            children: [
+              Icon(
+                icon,
                 color: textColor ?? Colors.white,
-                fontSize: 16,
               ),
-            ),
-          ],
+              const SizedBox(width: 12),
+              Flexible(
+                child: Text(
+                  text,
+                  style: TextStyle(
+                    color: textColor ?? Colors.white,
+                    fontSize: 16,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

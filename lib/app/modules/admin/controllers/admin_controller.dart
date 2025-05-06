@@ -6,6 +6,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 class AdminController extends GetxController {
   final AuthService _authService = Get.find<AuthService>();
 
+  // Constante para el correo del superadministrador que no puede ser modificado
+  static const String SUPER_ADMIN_EMAIL = 'admin@vidasaludable.com';
+
   // Controladores para el formulario de creación de usuarios
   final nameController = TextEditingController();
   final emailController = TextEditingController();
@@ -32,6 +35,14 @@ class AdminController extends GetxController {
   var editingEscuela = ''.obs;
   var editingEscuelaId = ''.obs;
 
+  // Controladores para edición de usuarios
+  final editNameController = TextEditingController();
+  final editEmailController = TextEditingController();
+  RxBool editIsAdmin = false.obs;
+
+  // Estado de edición
+  RxBool isEditingUser = false.obs;
+
   @override
   void onInit() {
     super.onInit();
@@ -46,6 +57,8 @@ class AdminController extends GetxController {
     emailController.dispose();
     passwordController.dispose();
     confirmPasswordController.dispose();
+    editNameController.dispose();
+    editEmailController.dispose();
     super.onClose();
   }
 
@@ -347,6 +360,154 @@ class AdminController extends GetxController {
         backgroundColor: Colors.green,
         colorText: Colors.white,
       );
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  // Iniciar edición de un usuario
+  void startEditingUser(Map<String, dynamic> user) {
+    editingUserId.value = user['id'];
+    editNameController.text = user['name'] ?? '';
+    editEmailController.text = user['email'] ?? '';
+    editIsAdmin.value = user['isAdmin'] == true;
+    editingEscuelaId.value = user['schoolId'] ?? '';
+    editingEscuela.value = user['nombre_escuela'] ?? '';
+    isEditingUser.value = true;
+  }
+
+  // Cancelar edición
+  void cancelEditingUser() {
+    editingUserId.value = '';
+    editNameController.clear();
+    editEmailController.clear();
+    editingEscuelaId.value = '';
+    editingEscuela.value = '';
+    editIsAdmin.value = false;
+    isEditingUser.value = false;
+  }
+
+  // Guardar cambios del usuario en edición
+  Future<void> saveUserEdits() async {
+    // Verificar si el usuario que se está editando es el superadministrador
+    final userToEdit = users.firstWhere(
+        (user) => user['id'] == editingUserId.value,
+        orElse: () => {});
+    if (userToEdit.isNotEmpty && userToEdit['email'] == SUPER_ADMIN_EMAIL) {
+      Get.snackbar(
+        'Error',
+        'No se puede modificar al superadministrador',
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+      cancelEditingUser();
+      return;
+    }
+
+    if (editNameController.text.isEmpty) {
+      Get.snackbar('Error', 'El nombre es obligatorio',
+          backgroundColor: Colors.red, colorText: Colors.white);
+      return;
+    }
+
+    if (editEmailController.text.isEmpty ||
+        !GetUtils.isEmail(editEmailController.text)) {
+      Get.snackbar('Error', 'Ingresa un correo electrónico válido',
+          backgroundColor: Colors.red, colorText: Colors.white);
+      return;
+    }
+
+    // Solo requerimos escuela para usuarios normales
+    if (!editIsAdmin.value && editingEscuelaId.isEmpty) {
+      Get.snackbar(
+          'Error', 'Debes seleccionar una escuela para usuarios normales',
+          backgroundColor: Colors.red, colorText: Colors.white);
+      return;
+    }
+
+    isLoading.value = true;
+    try {
+      final Map<String, dynamic> updatedData = {
+        'name': editNameController.text.trim(),
+        'email': editEmailController.text.trim(),
+        'isAdmin': editIsAdmin.value,
+        'schoolId': editingEscuelaId.value,
+        'nombre_escuela': editingEscuela.value,
+      };
+
+      await _authService.updateSuperUserData(editingUserId.value, updatedData);
+
+      Get.snackbar('Éxito', 'Usuario actualizado correctamente',
+          backgroundColor: Colors.green, colorText: Colors.white);
+
+      cancelEditingUser();
+      await loadUsers();
+    } catch (e) {
+      Get.snackbar('Error', 'No se pudo actualizar el usuario: $e',
+          backgroundColor: Colors.red, colorText: Colors.white);
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  // Verifica si un usuario es el superadministrador principal
+  bool isSuperAdmin(Map<String, dynamic> user) {
+    return user['email'] == SUPER_ADMIN_EMAIL;
+  }
+
+  // Verifica si un usuario puede ser editado
+  bool canEditUser(Map<String, dynamic> user) {
+    return user['email'] != SUPER_ADMIN_EMAIL;
+  }
+
+  // Verifica si un usuario puede ser eliminado
+  bool canDeleteUser(Map<String, dynamic> user) {
+    // No permitir eliminar si es el superadmin o si es administrador
+    if (user['email'] == SUPER_ADMIN_EMAIL) {
+      return false;
+    }
+    // Solo permitir eliminar si NO es un administrador
+    return user['isAdmin'] != true;
+  }
+
+  // Eliminar usuario
+  Future<void> deleteUser(String userId) async {
+    // Verificar si el usuario existe en la lista y obtener sus datos
+    final userToDelete =
+        users.firstWhere((user) => user['id'] == userId, orElse: () => {});
+
+    // Si no se encontró el usuario, mostrar error
+    if (userToDelete.isEmpty) {
+      Get.snackbar('Error', 'Usuario no encontrado',
+          backgroundColor: Colors.red, colorText: Colors.white);
+      return;
+    }
+
+    // Verificar si el usuario es el superadministrador
+    if (userToDelete['email'] == SUPER_ADMIN_EMAIL) {
+      Get.snackbar('Error', 'No se puede eliminar el superadministrador',
+          backgroundColor: Colors.red, colorText: Colors.white);
+      return;
+    }
+
+    // Verificar si el usuario es administrador
+    if (userToDelete['isAdmin'] == true) {
+      Get.snackbar('Error', 'No se puede eliminar un usuario administrador',
+          backgroundColor: Colors.red, colorText: Colors.white);
+      return;
+    }
+
+    isLoading.value = true;
+    try {
+      await _authService.deleteSuperUser(userId);
+
+      Get.snackbar('Éxito', 'Usuario eliminado correctamente',
+          backgroundColor: Colors.green, colorText: Colors.white);
+
+      await loadUsers();
+    } catch (e) {
+      Get.snackbar('Error', 'No se pudo eliminar el usuario: $e',
+          backgroundColor: Colors.red, colorText: Colors.white);
     } finally {
       isLoading.value = false;
     }

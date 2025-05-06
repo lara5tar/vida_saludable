@@ -26,8 +26,3 @@ void main() async {
     ),
   );
 }
-
-
-// las edades
-// las advertencias
-// la evaluacion socioeconomica

@@ -323,6 +323,51 @@ class AuthService extends GetxService {
     }
   }
 
+  // Eliminar un usuario (solo para administradores)
+  Future<bool> deleteSuperUser(String userId) async {
+    try {
+      if (!isAdmin.value) {
+        throw Exception('No tienes permisos de administrador');
+      }
+
+      // Obtener el documento del usuario para verificar información
+      final userDoc =
+          await _firestore.collection('superUsers').doc(userId).get();
+
+      if (!userDoc.exists) {
+        throw Exception('El usuario no existe');
+      }
+
+      // Obtener email para eliminar en Authentication
+      final userData = userDoc.data();
+      final userEmail = userData?['email'];
+
+      // Eliminar primero en Firestore
+      await _firestore.collection('superUsers').doc(userId).delete();
+
+      // Nota: La eliminación total del usuario de Authentication requeriría
+      // funciones de administrador o que el usuario esté actualmente autenticado.
+      // Aquí simplemente deshabilitamos su acceso a la app eliminando sus datos.
+
+      Get.snackbar(
+        'Usuario eliminado',
+        'El usuario ha sido eliminado correctamente',
+        backgroundColor: Colors.green,
+        colorText: Colors.white,
+      );
+
+      return true;
+    } catch (e) {
+      Get.snackbar(
+        'Error al eliminar usuario',
+        'Ocurrió un error al eliminar el usuario: ${e.toString()}',
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+      return false;
+    }
+  }
+
   // Método para forzar la concesión de permisos de administrador a un usuario por su correo
   Future<bool> forceGrantAdminRights(String email) async {
     try {

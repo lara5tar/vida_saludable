@@ -434,7 +434,7 @@ class UserController extends GetxController {
     }
 
     final icc = cintura / estatura;
-    final ratio = icc.toStringAsFixed(2);
+    final ratio = (icc / 100).toStringAsFixed(2);
 
     return '${icc >= 0.50 ? 'Incrementa riesgos cardio-metabólicos' : 'Saludable'} ($ratio)';
   }

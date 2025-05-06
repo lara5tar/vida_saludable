@@ -8,6 +8,7 @@ abstract class Routes {
   static const USER = _Paths.USER;
   static const LOGIN = _Paths.LOGIN;
   static const ADMIN = _Paths.ADMIN;
+  static const ESTADISTICAS = _Paths.ESTADISTICAS;
 }
 
 abstract class _Paths {
@@ -17,4 +18,5 @@ abstract class _Paths {
   static const USER = '/user/:id';
   static const LOGIN = '/login';
   static const ADMIN = '/admin';
+  static const ESTADISTICAS = '/estadisticas';
 }

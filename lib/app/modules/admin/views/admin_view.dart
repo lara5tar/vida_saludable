@@ -297,123 +297,179 @@ class AdminView extends GetView<AdminController> {
                         DataCell(Text(user['email'] ?? '')),
                         // Celda para la escuela
                         DataCell(
-                          Obx(() {
-                            if (controller.editingUserId.value == userId) {
-                              // Modo edición: muestra el dropdown
-                              return Container(
-                                constraints:
-                                    const BoxConstraints(maxWidth: 200),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Expanded(
-                                      child: DropdownButton<String>(
-                                        value: controller.editingEscuelaId.value
-                                                .isNotEmpty
-                                            ? controller.editingEscuelaId.value
-                                            : null,
-                                        hint: const Text('Selecciona'),
-                                        isExpanded: true,
-                                        icon: const Icon(Icons.arrow_drop_down),
-                                        onChanged: (String? newValue) {
-                                          if (newValue != null) {
-                                            // Encontrar el nombre de la escuela seleccionada
-                                            final escuela =
-                                                controller.escuelas.firstWhere(
-                                              (e) => e['id'] == newValue,
-                                              orElse: () => {
-                                                'id': newValue,
-                                                'nombre': 'Desconocida'
-                                              },
-                                            );
-                                            controller.selectEditingEscuela(
-                                                newValue, escuela['nombre']);
-                                          }
-                                        },
-                                        items: controller.escuelas
-                                            .map<DropdownMenuItem<String>>(
-                                                (Map<String, dynamic> escuela) {
-                                          return DropdownMenuItem<String>(
-                                            value: escuela['id'],
-                                            child: Text(
-                                              escuela['nombre'],
-                                              overflow: TextOverflow.ellipsis,
-                                            ),
-                                          );
-                                        }).toList(),
-                                      ),
-                                    ),
-                                    IconButton(
-                                      icon: const Icon(Icons.check,
-                                          color: Colors.green),
-                                      onPressed: () =>
-                                          controller.saveUserEscuela(
-                                        userId,
-                                        controller.editingEscuelaId.value,
-                                        controller.editingEscuela.value,
-                                      ),
-                                      tooltip: 'Guardar',
-                                    ),
-                                    IconButton(
-                                      icon: const Icon(Icons.close,
-                                          color: Colors.red),
-                                      onPressed: () =>
-                                          controller.cancelEditingEscuela(),
-                                      tooltip: 'Cancelar',
-                                    ),
-                                  ],
+                          // Obx(() {
+                          //   if (controller.editingUserId.value == userId) {
+                          //     // Modo edición: muestra el dropdown
+                          //     return Container(
+                          //       constraints:
+                          //           const BoxConstraints(maxWidth: 200),
+                          //       child: Row(
+                          //         mainAxisSize: MainAxisSize.min,
+                          //         children: [
+                          //           Expanded(
+                          //             child: DropdownButton<String>(
+                          //               value: controller.editingEscuelaId.value
+                          //                       .isNotEmpty
+                          //                   ? controller.editingEscuelaId.value
+                          //                   : null,
+                          //               hint: const Text('Selecciona'),
+                          //               isExpanded: true,
+                          //               icon: const Icon(Icons.arrow_drop_down),
+                          //               onChanged: (String? newValue) {
+                          //                 if (newValue != null) {
+                          //                   // Encontrar el nombre de la escuela seleccionada
+                          //                   final escuela =
+                          //                       controller.escuelas.firstWhere(
+                          //                     (e) => e['id'] == newValue,
+                          //                     orElse: () => {
+                          //                       'id': newValue,
+                          //                       'nombre': 'Desconocida'
+                          //                     },
+                          //                   );
+                          //                   controller.selectEditingEscuela(
+                          //                       newValue, escuela['nombre']);
+                          //                 }
+                          //               },
+                          //               items: controller.escuelas
+                          //                   .map<DropdownMenuItem<String>>(
+                          //                       (Map<String, dynamic> escuela) {
+                          //                 return DropdownMenuItem<String>(
+                          //                   value: escuela['id'],
+                          //                   child: Text(
+                          //                     escuela['nombre'],
+                          //                     overflow: TextOverflow.ellipsis,
+                          //                   ),
+                          //                 );
+                          //               }).toList(),
+                          //             ),
+                          //           ),
+                          //           IconButton(
+                          //             icon: const Icon(Icons.check,
+                          //                 color: Colors.green),
+                          //             onPressed: () =>
+                          //                 controller.saveUserEscuela(
+                          //               userId,
+                          //               controller.editingEscuelaId.value,
+                          //               controller.editingEscuela.value,
+                          //             ),
+                          //             tooltip: 'Guardar',
+                          //           ),
+                          //           IconButton(
+                          //             icon: const Icon(Icons.close,
+                          //                 color: Colors.red),
+                          //             onPressed: () =>
+                          //                 controller.cancelEditingEscuela(),
+                          //             tooltip: 'Cancelar',
+                          //           ),
+                          //         ],
+                          //       ),
+                          //     );
+                          //   } else {
+                          //     // Modo visualización: muestra el texto con botón de editar
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  currentEscuela.isEmpty
+                                      ? 'No asignada'
+                                      : currentEscuela,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
-                              );
-                            } else {
-                              // Modo visualización: muestra el texto con botón de editar
-                              return Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Expanded(
-                                    child: Text(
-                                      currentEscuela.isEmpty
-                                          ? 'No asignada'
-                                          : currentEscuela,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                  IconButton(
-                                    icon: const Icon(Icons.edit, size: 20),
-                                    onPressed: () =>
-                                        controller.startEditingEscuela(
-                                      userId,
-                                      currentEscuela,
-                                      currentEscuelaId,
-                                    ),
-                                    tooltip: 'Editar escuela',
-                                  ),
-                                ],
-                              );
-                            }
-                          }),
+                              ),
+                              // IconButton(
+                              //   icon: const Icon(Icons.edit, size: 20),
+                              //   onPressed: () =>
+                              //       controller.startEditingEscuela(
+                              //     userId,
+                              //     currentEscuela,
+                              //     currentEscuelaId,
+                              //   ),
+                              //   tooltip: 'Editar escuela',
+                              // ),
+                            ],
+                          ),
+                          // }
+                          // }),
                         ),
                         DataCell(
-                          Switch(
-                            value: user['isAdmin'] == true,
-                            activeColor: Colors.green.shade700,
-                            onChanged: (value) {
-                              controller.changeUserAdminStatus(
-                                  user['id'], value);
-                            },
+                          Center(
+                            child: Icon(
+                              user['isAdmin'] == true
+                                  ? Icons.check_circle
+                                  : Icons.cancel,
+                              color: user['isAdmin'] == true
+                                  ? Colors.green
+                                  : Colors.red,
+                            ),
                           ),
+                          // Switch(
+                          //   value: user['isAdmin'] == true,
+                          //   activeColor: Colors.green.shade700,
+                          //   onChanged: (value) {
+                          //     controller.changeUserAdminStatus(
+                          //         user['id'], value);
+                          //   },
+                          // ),
                         ),
                         DataCell(
                           Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
+                              // Botón para editar usuario
+                              IconButton(
+                                icon:
+                                    const Icon(Icons.edit, color: Colors.blue),
+                                tooltip: controller.isSuperAdmin(user)
+                                    ? 'No se puede editar al superadministrador'
+                                    : 'Editar usuario',
+                                onPressed: controller.isSuperAdmin(user)
+                                    ? null // Deshabilitar para superadmin
+                                    : () {
+                                        controller.startEditingUser(user);
+                                        _showEditUserDialog();
+                                      },
+                                // Aplicar opacidad reducida si está deshabilitado
+                                color: controller.isSuperAdmin(user)
+                                    ? Colors.blue.withOpacity(0.3)
+                                    : Colors.blue,
+                              ),
                               // Botón para restablecer contraseña
                               IconButton(
                                 icon: const Icon(Icons.key),
-                                tooltip: 'Restablecer contraseña',
-                                onPressed: () {
-                                  _showResetPasswordConfirmation(
-                                      user['id'], user['email']);
-                                },
+                                tooltip: controller.isSuperAdmin(user)
+                                    ? 'No se puede cambiar contraseña al superadministrador'
+                                    : 'Restablecer contraseña',
+                                onPressed: controller.isSuperAdmin(user)
+                                    ? null // Deshabilitar para superadmin
+                                    : () {
+                                        _showResetPasswordConfirmation(
+                                            user['id'], user['email']);
+                                      },
+                                // Aplicar opacidad reducida si está deshabilitado
+                                color: controller.isSuperAdmin(user)
+                                    ? Colors.grey.withOpacity(0.3)
+                                    : null,
+                              ),
+                              // Botón para eliminar usuario
+                              IconButton(
+                                icon:
+                                    const Icon(Icons.delete, color: Colors.red),
+                                tooltip: controller.isSuperAdmin(user)
+                                    ? 'No se puede eliminar al superadministrador'
+                                    : (user['isAdmin'] == true)
+                                        ? 'No se puede eliminar administradores'
+                                        : 'Eliminar usuario',
+                                onPressed: !controller.canDeleteUser(user)
+                                    ? null // Deshabilitar para superadmin o admin
+                                    : () {
+                                        _showDeleteConfirmation(
+                                            user['id'], user['email']);
+                                      },
+                                // Aplicar opacidad reducida si está deshabilitado
+                                color: !controller.canDeleteUser(user)
+                                    ? Colors.red.withOpacity(0.3)
+                                    : Colors.red,
                               ),
                             ],
                           ),
@@ -449,7 +505,184 @@ class AdminView extends GetView<AdminController> {
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.green.shade700,
             ),
-            child: const Text('Enviar'),
+            child: const Text(
+              'Enviar',
+              style: TextStyle(
+                color: Colors.white,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Mostrar diálogo de edición de usuario
+  void _showEditUserDialog() {
+    Get.dialog(
+      AlertDialog(
+        title: const Text('Editar Usuario'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: controller.editNameController,
+                decoration: InputDecoration(
+                  labelText: 'Nombre',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 15),
+              TextField(
+                controller: controller.editEmailController,
+                keyboardType: TextInputType.emailAddress,
+                decoration: InputDecoration(
+                  labelText: 'Correo Electrónico',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 15),
+              // Dropdown para seleccionar escuela
+              Obx(() {
+                // Solo mostrar el selector de escuela si el usuario no es admin
+                bool showSchoolSelector = !controller.editIsAdmin.value;
+
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (showSchoolSelector) ...[
+                      const Text(
+                        'Escuela asignada:',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey,
+                        ),
+                      ),
+                      const SizedBox(height: 5),
+                      Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: Colors.grey.shade400),
+                        ),
+                        padding: const EdgeInsets.symmetric(horizontal: 10),
+                        child: DropdownButtonHideUnderline(
+                          child: DropdownButton<String>(
+                            value: controller.editingEscuelaId.value.isNotEmpty
+                                ? controller.editingEscuelaId.value
+                                : null,
+                            hint: const Text('Selecciona una escuela'),
+                            isExpanded: true,
+                            icon: const Icon(Icons.arrow_drop_down),
+                            elevation: 16,
+                            onChanged: (String? newValue) {
+                              if (newValue != null) {
+                                // Encontrar el nombre de la escuela seleccionada
+                                final escuela = controller.escuelas.firstWhere(
+                                  (e) => e['id'] == newValue,
+                                  orElse: () =>
+                                      {'id': newValue, 'nombre': 'Desconocida'},
+                                );
+                                controller.selectEditingEscuela(
+                                    newValue, escuela['nombre']);
+                              }
+                            },
+                            items: controller.escuelas
+                                .map<DropdownMenuItem<String>>(
+                                    (Map<String, dynamic> escuela) {
+                              return DropdownMenuItem<String>(
+                                value: escuela['id'],
+                                child: Text(
+                                  escuela['nombre'],
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              );
+                            }).toList(),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 15),
+                    ],
+                  ],
+                );
+              }),
+              // Checkbox para establecer permisos de administrador
+              Obx(() => CheckboxListTile(
+                    title: const Text('Otorgar permisos de administrador'),
+                    value: controller.editIsAdmin.value,
+                    onChanged: (value) {
+                      controller.editIsAdmin.value = value ?? false;
+                    },
+                    activeColor: Colors.green.shade700,
+                    controlAffinity: ListTileControlAffinity.leading,
+                    contentPadding: EdgeInsets.zero,
+                  )),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              controller.cancelEditingUser();
+              Get.back();
+            },
+            child: const Text(
+              'Cancelar',
+              style: TextStyle(
+                color: Colors.green,
+              ),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              controller.saveUserEdits();
+              Get.back();
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.green.shade700,
+            ),
+            child: const Text(
+              'Guardar',
+              style: TextStyle(
+                color: Colors.white,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Mostrar confirmación de eliminación
+  void _showDeleteConfirmation(String userId, String email) {
+    Get.dialog(
+      AlertDialog(
+        title: const Text('Eliminar Usuario'),
+        content: Text(
+            '¿Estás seguro de que quieres eliminar al usuario con email $email? Esta acción no se puede deshacer.'),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Get.back();
+              controller.deleteUser(userId);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+            ),
+            child: const Text(
+              'Eliminar',
+              style: TextStyle(
+                color: Colors.white,
+              ),
+            ),
           ),
         ],
       ),

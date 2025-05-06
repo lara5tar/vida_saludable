@@ -5,6 +5,8 @@ import 'package:vida_saludable/app/modules/admin/views/admin_view.dart';
 import 'package:vida_saludable/app/modules/login/bindings/login_binding.dart';
 import 'package:vida_saludable/app/modules/login/views/login_view.dart';
 import 'package:vida_saludable/app/modules/user/views/user_view.dart';
+import 'package:vida_saludable/app/modules/estadisticas/bindings/estadisticas_binding.dart';
+import 'package:vida_saludable/app/modules/estadisticas/views/estadisticas_view.dart';
 
 import '../modules/home/bindings/home_binding.dart';
 import '../modules/home/views/home_view.dart';
@@ -48,6 +50,12 @@ class AppPages {
       page: () => const AdminView(),
       binding: AdminBinding(),
       middlewares: [AuthMiddleware(), AdminMiddleware()],
+    ),
+    GetPage(
+      name: _Paths.ESTADISTICAS,
+      page: () => const EstadisticasView(),
+      binding: EstadisticasBinding(),
+      middlewares: [AuthMiddleware()],
     ),
   ];
 }
