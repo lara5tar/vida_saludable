@@ -428,7 +428,7 @@ class CustomScaffold extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 15),
       child: Center(
         child: Image.asset(
-          'assets/logo.webp',
+          'assets/logo.jpeg',
           height: 80,
           fit: BoxFit.contain,
         ),
